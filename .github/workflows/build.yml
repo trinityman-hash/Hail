@@ -1,0 +1,44 @@
+name: Build Instagram Spy APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allows you to trigger it manually
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build APK
+        # This command uses a pre-installed Android SDK to build the APK
+        run: |
+          # 1. Install the required Android SDK components
+          sdkmanager "platforms;android-33" "build-tools;33.0.2"
+
+          # 2. Create the missing gradle wrapper files locally so the build doesn't crash
+          mkdir -p gradle/wrapper
+          echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-bin.zip" >> gradle/wrapper/gradle-wrapper.properties
+
+          # 3. Run the build
+          ./gradlew assembleDebug
+          # Note: If you don't have a local gradlew, we use the sdkmanager to fetch it
+          sdkmanager "extras;android;m2repository" # Just to ensure tools are ready
+
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Instagram_Spy_App
+          path: app/build/outputs/apk/debug/app-debug.apk
