@@ -1,0 +1,49 @@
+# Gradle files
+.gradle/
+build/
+*.apk
+*.ap_
+*.aab
+
+# Android specific
+.DS_Store
+local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.classpath
+.project
+.settings/
+*.jks
+*.keystore
+
+# IDE
+.idea/
+*.iml
+*.swp
+*~
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Local environment
+.env
+.env.local
+
+# Output files
+bin/
+gen/
+out/
+
+# Captures
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Log files
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
