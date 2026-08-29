@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 #
 # Copyright 2015 the original author or authors.
@@ -23,137 +23,173 @@
 ##############################################################################
 
 # Attempt to set APP_HOME
-# Resolve links: $0 may be a symlink
-app_path="$0"
-
-# Need this for daisy-chained symlinks.
-while
-    APP_HOME=${app_path%"${app_path##*/}"}
-    [ -h "$app_path" ]
-do
-    ls=$( ls -ld "$app_path" )
-    link=${ls#*' -> '}
-    case $link in
-    /*) app_path=$link ;;
-    *) app_path=$APP_HOME$link ;;
-    esac
+# Resolve links: $0 may be a link
+PRG="$0"
+# Need this for relative symlinks.
+while [ -h "$PRG" ] ; do
+    ls -ld "$PRG"
+    PRG=`readlink "$PRG"`
 done
-
-# This is normally unused
-app_base_name=${0##*/}
-app_home_dir=$( cd "${APP_HOME-.}" && pwd -P ) || exit
+PRG_DIR=`dirname "$PRG"`
+APP_HOME=`cd "$PRG_DIR"/.. >/dev/null 2>&1 && pwd`
 
 # Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
-DEFAULT_JVM_OPTS='" -Xmx64m" "-Xms64m"'
+DEFAULT_JVM_OPTS='" "-Xmx64m" "-Xms64m"'
 
 # Use the maximum available, or set MAX_FD != unlimited.
-MAX_FD=maximum
+MAX_FD="maximum"
 
 warn () {
-    echo "$*" >&2
+    echo "$*"
 }
 
 die () {
     echo
     echo "$*"
-    echo
     exit 1
 }
 
 # OS specific support (must be 'true' or 'false').
-case "$( uname )" in
-  CYGWIN* )
-    cygwin=true
-    ;;
+DARWIN=false
+MINGW=false
+MSYS=false
+CYGWIN=false
+
+case `uname` in
   Darwin* )
-    darwin=true
+    DARWIN=true
     ;;
-  MSYS* | MINGW* )
-    msys=true
+  MINGW* )
+    MINGW=true
     ;;
-  NOHUP* )
-    nohup=true
+  MSYS* )
+    MSYS=true
+    ;;
+  CYGWIN* )
+    CYGWIN=true
     ;;
 esac
 
 # Increase the maximum file descriptors if we can.
-if ! "$cygwin" && ! "$darwin" && ! "$msys" ; then
-    case $MAX_FD in
-    max*)
-        # In POSIX sh, RLIMIT_INFINITY is -1, not 2147483647.
-        ulimit -n unbounded 2>/dev/null || ulimit -n 2147483647
-        ;;
+if [ "$DARWIN" = "true" ] && [ -z "$JAVA_HOME" ] ; then
+    export JAVA_HOME=$(/usr/libexec/java_home)
+fi
+
+if [ "$DARWIN" = "true" ] && [ -z "$JAVA_HOME" ] ; then
+  [ "$JAVA_HOME" = "" ] && JAVA_HOME=`/usr/libexec/java_home`
+  if [ -z "$JAVA_HOME" ] ; then
+    user_java_home=`dscl /Search -search /Users UserShell | grep -v Local | cut -d: -f1 | head -1 | xargs dscl /Search -read`
+    JAVA_HOME=`echo $user_java_home | sed 's/^ *UserShell: *//;s/ *$//'`
+  fi
+fi
+
+if [ -z "$JAVA_HOME" ] ; then
+  if [ -x /usr/bin/java ] ; then
+    JAVA_HOME=/usr
+  fi
+fi
+
+if [ -z "$CLASSPATH" ] ; then
+    CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+else
+    CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar:$CLASSPATH
+fi
+
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses strange locations for the executables
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+fi
+
+# Increase the maximum file descriptors if we can.
+if [ "$DARWIN" = "true" ] ; then
+    MAX_FD_LIMIT=`ulimit -H -n`
+    if [ $? -eq 0 ] ; then
+        if [ "$MAX_FD" = "maximum" -o "$MAX_FD" = "max" ] ; then
+            MAX_FD="$MAX_FD_LIMIT"
+        fi
+        ulimit -n $MAX_FD
+        if [ $? -ne 0 ] ; then
+            warn "Could not set maximum file descriptor limit: $MAX_FD"
+        fi
+    else
+        warn "Could not query maximum file descriptor limit: $MAX_FD_LIMIT"
+    fi
+fi
+
+# For Darwin, add options to specify how the application appears in the dock
+if [ "$DARWIN" = "true" ] ; then
+    GRADLE_OPTS="$GRADLE_OPTS \"-Xdock:name=$APP_NAME\" \"-Xdock:icon=$APP_HOME/media/gradle.icns\"
+fi
+
+# For Cygwin or MSYS, switch paths to Windows format before running java
+if [ "$CYGWIN" = "true" ] -o [ "$MSYS" = "true" ] ; then
+    APP_HOME=`cygpath --path --mixed "$APP_HOME"`
+    CLASSPATH=`cygpath --path --mixed "$CLASSPATH"`
+
+    JAVACMD=`cygpath --unix "$JAVACMD"`
+
+    # We build the pattern for arguments to be converted via cygpath
+    ROOTDIRSRAW=`find -L / -maxdepth 3 -type d -name java_home 2>/dev/null`
+    SEP=""
+    for dir in $ROOTDIRSRAW ; do
+        ROOTDIRS="$ROOTDIRS$SEP$dir"
+        SEP="|"
+    done
+    OURCYGPATTERN="(^($ROOTDIRS)$)"
+    # Add a user-defined pattern to the cygpath arguments
+    if [ "$GRADLE_CYGWIN_VERBOSE" = "true" ] ; then
+        echo base directory: $1
+    fi
+    case $base in
+        /)
+            # MSYS
+            ;;
+        *)
+            ;;
     esac
 fi
 
-# Escape application args
-save () {
-    for i do printf %s\\n "$i" | sed "s/'/'\"'\"'/g;1s/^/'/;\$s/\$/'" ; done
-    echo " "
-}
-APP_ARGS=$( save "$@" )
-
-# Collect all arguments for the java command.
-set -- \
-        "-Dorg.gradle.appname=$app_base_name" \
-        -classpath "$app_home_dir/gradle/wrapper/gradle-wrapper.jar" \
-        org.gradle.wrapper.GradleWrapperMain \
-        "$APP_ARGS"
-
-# Stop when "xargs" by itself has been stopped (in case of "-e +flag").
-if ! IFS= read -r line <&- ; then
-    IFS= read -r line
+if [ "$MINGW" = "true" ] ; then
+    nfiles=0
+    for arg in "$@" ; do
+        if [ -n "$MINGW_STATUS" ] && [ x"${MINGW_STATUS}" = x0 ] ; then
+            if expr "$arg" : [-].*Xms >/dev/null ; then
+                new_arg="$arg"
+            elif expr "$arg" : [-].*Xmx >/dev/null ; then
+                new_arg="$arg"
+            elif [ "$arg" = "continue" ] ; then
+                MINGW_STATUS=
+                new_arg=
+            else
+                new_arg=
+                MINGW_STATUS=
+            fi
+        fi
+        if [ -z "$new_arg" ] ; then
+            new_arg="$arg"
+        fi
+        nfiles=$((nfiles + 1))
+        eval "set -- \"$@\" \"$new_arg\""
+    done
 fi
-set -- "$@" "$line"
 
-case $( uname ) in
-  CYGWIN* )
-    # Fix for Windows git bash that gives\r\r\n .
-    path_conv() {
-        sed -e "s@^\(.*\)@/cygdrive/\L\1@g"
-    }
-    ;;
-  MSYS* | MINGW* )
-    # Fix for Windows git bash that gives\r\r\n .
-    path_conv() {
-        sed -e "s@^\(.*\)@/\1@g"
-    }
-    ;;
-  NOHUP* )
-    path_conv() {
-        echo "$1"
-    }
-    ;;
-esac
+eval "set -- $GRADLE_OPTS \"-Dorg.gradle.appname=$APP_BASE_NAME\" -classpath \"$CLASSPATH\" org.gradle.wrapper.GradleWrapperMain \"$@\""
 
-# Now convert the arguments - kludge to limit ourselves to /bin/sh
-for arg do
-    if
-        case $arg in
-        -*) false ;;
-        *) true ;;
-        esac
-    then
-        arg=$( path_conv "$1" )
-    fi
-    shift
-    set -- "$@" "$arg"
-done
-
-# Collect all arguments for the java command;
-# * $DEFAULT_JVM_OPTS, $JAVA_OPTS, and $GRADLE_OPTS can contain fragments of
-#   shell commands we need for word splitting, so put them in double quotes to
-#   make it clear that they should be evaluated as such; see the
-#   "shut_down" and "init_proc" functions for examples. to avoid this
-#   problem, let's set a Java system property as a reference instead.
-# * When using the daemon. the Java heap will be managed by the daemon, and
-#   the " -Xmx" and "-Xms" values will only apply to the client VM, not the
-#   daemon. see https://docs.gradle.org/latest/userguide/gradle_daemon.html
-#   " -Xmx768m" " -Xms256m"
-set -- \
-        "-Dorg.gradle.appname=$app_base_name" \
-        -classpath "$app_home_dir/gradle/wrapper/gradle-wrapper.jar" \
-        org.gradle.wrapper.GradleWrapperMain \
-        "$APP_ARGS"
-
-exec "$JCMD" "$@"
+eval exec "$JAVACMD" "$@"
